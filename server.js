@@ -10,7 +10,6 @@ app.use(Express.static('public'));
 
 // Sample GET route
 app.get('/api/data', (req, res) => {
-  console.log('at the endpoint');
   res.send('Sending back to client');
 })
 
