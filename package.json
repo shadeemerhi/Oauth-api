@@ -1,0 +1,15 @@
+{
+  "name": "express-back-end",
+  "version": "1.0.0",
+  "main": "server.js",
+  "author": "shadeemerhi",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "nodemon": "^1.18.7"
+  }
+}
