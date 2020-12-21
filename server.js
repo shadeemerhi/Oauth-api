@@ -1,37 +1,57 @@
-require('dotenv').config();
-const express = require('express');
+const express = require("express");
+const bodyParser = require("body-parser");
+const FormData = require("form-data");
+const fetch = require("node-fetch");
+const { client_id, redirect_uri, client_secret } = require("./config");
+
+const config = require("./config");
+
 const app = express();
-const BodyParser = require('body-parser');
-const cors = require('cors');
-const PORT = 8080;
 
-// Express Configuration
-app.use(BodyParser.urlencoded({ extended: false }));
-app.use(BodyParser.json());
-app.use(express.static('public'));
-// app.use(cors({ origin: true, credentials: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.json({ type: "text/*" }));
+app.use(bodyParser.urlencoded({ extended: false }));
 
-const client_id = process.env.GITHUB_CLIENT_ID;
-const client_secret = process.env.GITHUB_CLIENT_SECRET;
-const cookie_secret = process.env.COOKIE_SECRET;
-
-// Sample GET route
-app.get('/api/data', (req, res) => {
-  res.send('Sending back to client');
-})
-
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server listening on port ${PORT}`);
+// Enabled Access-Control-Allow-Origin", "*" in the header so as to by-pass the CORS error.
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  next();
 });
 
-app.get('/login/github', (req, res) => {
-  console.log('hitting endpoint');
-  const url = `https://github.com/login/oauth/authorize?client_id=${client_id}&redirect_uri=http://localhost:8080/login/github/callback`;
-  res.redirect(url);
+app.post("/authenticate", (req, res) => {
+  const { code } = req.body;
+
+  const data = new FormData();
+  data.append("client_id", client_id);
+  data.append("client_secret", client_secret);
+  data.append("code", code);
+  data.append("redirect_uri", redirect_uri);
+
+  // Request to exchange code for an access token
+  fetch(`https://github.com/login/oauth/access_token`, {
+    method: "POST",
+    body: data,
+  })
+    .then((response) => response.text())
+    .then((paramsString) => {
+      let params = new URLSearchParams(paramsString);
+      const access_token = params.get("access_token");
+
+      // Request to return data of a user that has been authenticated
+      return fetch(`https://api.github.com/user`, {
+        headers: {
+          Authorization: `token ${access_token}`,
+        },
+      });
+    })
+    .then((response) => response.json())
+    .then((response) => {
+      return res.status(200).json(response);
+    })
+    .catch((error) => {
+      return res.status(400).json(error);
+    });
 });
 
-app.get('/login/github/callback', (req, res) => {
-  res.send('idk what to do from here');
-  res.redirect('http://localhost:3000');
-})
+const PORT = process.env.SERVER_PORT || 5000;
+app.listen(PORT, () => console.log(`Listening on ${PORT}`));
